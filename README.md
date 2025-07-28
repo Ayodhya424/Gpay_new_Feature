@@ -169,5 +169,3 @@ Interactive Charts: Use a JavaScript charting library (e.g., Chart.js, D3.js) fo
 
 Add/Edit Transactions: Allow users to manually add, edit, or delete transactions.
 
-
-This project is Design By Ayodhya Kushwaha, 3th year B.Tech Student from parul University.
