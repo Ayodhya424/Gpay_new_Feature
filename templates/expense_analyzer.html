@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Pay Expense Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light grey background */
+            color: #333;
+        }
+        .gpay-gradient {
+            background: linear-gradient(to right, #4285F4, #34A853, #FBBC05, #EA4335);
+        }
+        /* Custom styles for the pie chart (using a simple div for visual representation) */
+        .pie-chart-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--food-color, #4285F4) 0% var(--food-end, 0%),
+                var(--transport-color, #34A853) var(--food-end, 0%) var(--transport-end, 0%),
+                var(--shopping-color, #FBBC05) var(--transport-end, 0%) var(--shopping-end, 0%),
+                var(--travel-color, #673AB7) var(--shopping-end, 0%) var(--travel-end, 0%),
+                var(--groceries-color, #00BCD4) var(--travel-end, 0%) var(--groceries-end, 0%),
+                var(--investment-color, #FF9800) var(--groceries-end, 0%) var(--investment-end, 0%),
+                var(--education-color, #8BC34A) var(--investment-end, 0%) var(--education-end, 0%),
+                var(--transfers-color, #9C27B0) var(--education-end, 0%) var(--transfers-end, 0%),
+                var(--other-color, #607D8B) var(--transfers-end, 0%) 100%
+            );
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .pie-chart-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm p-4 flex items-center justify-between rounded-b-lg">
+        <div class="flex items-center">
+            <a href="/" class="flex items-center"> <!-- Link back to home -->
+                <svg class="w-6 h-6 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+            </a>
+            <h1 class="text-xl font-semibold text-gray-800">Expense Analyzer</h1>
+        </div>
+        <button class="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition duration-200">
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow p-4 overflow-y-auto">
+
+        <!-- Overview Card -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-medium text-gray-700">Monthly Overview</h2>
+                <select id="monthSelect" class="p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="currentMonth">July 2025</option>
+                    <option value="prevMonth">June 2025</option>
+                    <option value="2025-05">May 2025</option>
+                </select>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center justify-around text-center sm:text-left">
+                <div class="mb-4 sm:mb-0">
+                    <p class="text-gray-500 text-sm">Total Spent</p>
+                    <p class="text-3xl font-bold text-red-600" id="totalSpent">₹0.00</p>
+                </div>
+                <div class="h-16 w-px bg-gray-200 hidden sm:block mx-4"></div> <!-- Divider for desktop -->
+                <div class="mb-4 sm:mb-0">
+                    <p class="text-gray-500 text-sm">Total Income</p>
+                    <p class="text-3xl font-bold text-green-600" id="totalIncome">₹0.00</p>
+                </div>
+                <!-- Balance section removed -->
+            </div>
+        </section>
+
+        <!-- Expense Categories and Chart -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6 flex flex-col lg:flex-row lg:items-start justify-between">
+            <div class="flex-shrink-0 mb-6 lg:mb-0 lg:mr-8 flex flex-col items-center">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">Expense Categories</h2>
+                <div class="pie-chart-container" id="pieChartContainer">
+                    <div class="pie-chart-center">
+                        <span class="text-xs">Total</span>
+                        <span class="text-lg font-bold" id="pieChartTotal">₹0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category List side by Pie Chart -->
+            <div class="flex-grow w-full lg:w-auto">
+                <h3 class="text-lg font-medium text-gray-700 mb-4 lg:mt-0 mt-6">Category Breakdown</h3>
+                <ul class="space-y-3" id="expenseCategoriesList">
+                    <!-- Categories will be dynamically populated here -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- New: Date Filtering Options -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-lg font-medium text-gray-700 mb-4">View Expenses By</h2>
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button id="filterWeek" class="px-4 py-2 rounded-full bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition duration-200">This Week</button>
+                <button id="filterMonth" class="px-4 py-2 rounded-full bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition duration-200">This Month</button>
+                <button id="filterCustom" class="px-4 py-2 rounded-full bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition duration-200">Custom Range</button>
+            </div>
+            <div id="customDateRange" class="hidden flex flex-col sm:flex-row gap-3 items-center">
+                <input type="date" id="startDate" class="p-2 border border-gray-300 rounded-md flex-grow">
+                <span class="text-gray-600">to</span>
+                <input type="date" id="endDate" class="p-2 border border-gray-300 rounded-md flex-grow">
+                <button id="applyCustomFilter" class="px-4 py-2 rounded-md bg-blue-500 text-white font-medium hover:bg-blue-600 transition duration-200">Apply</button>
+            </div>
+        </section>
+
+        <!-- Spending Insights (Gemini API Integration) -->
+        <section class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-lg font-medium text-gray-700 mb-4">Spending Insights ✨</h2>
+            <button id="getInsightsBtn" class="w-full py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition duration-200 shadow-md flex items-center justify-center">
+                <span id="buttonText">Get Spending Insights</span>
+                <div id="loadingSpinner" class="loading-spinner ml-2 hidden"></div>
+            </button>
+            <div id="insightsOutput" class="mt-4 p-4 bg-purple-50 rounded-lg text-gray-700 hidden">
+                <!-- Insights will be displayed here -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const totalSpentElement = document.getElementById('totalSpent');
+            const totalIncomeElement = document.getElementById('totalIncome');
+            const pieChartTotalElement = document.getElementById('pieChartTotal');
+            const expenseCategoriesListElement = document.getElementById('expenseCategoriesList');
+            const pieChartContainer = document.getElementById('pieChartContainer');
+
+            const filterWeekBtn = document.getElementById('filterWeek');
+            const filterMonthBtn = document.getElementById('filterMonth');
+            const filterCustomBtn = document.getElementById('filterCustom');
+            const customDateRangeDiv = document.getElementById('customDateRange');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const applyCustomFilterBtn = document.getElementById('applyCustomFilter');
+
+            const getInsightsBtn = document.getElementById('getInsightsBtn');
+            const insightsOutput = document.getElementById('insightsOutput');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const buttonText = document.getElementById('buttonText');
+
+            getInsightsBtn.addEventListener('click', getSpendingInsights);
+
+            // Define categories and their colors
+            const categories = {
+                'Food & Dining': { color: '#4285F4', total: 0 },
+                'Transport': { color: '#34A853', total: 0 },
+                'Shopping': { color: '#FBBC05', total: 0 },
+                'Travel': { color: '#673AB7', total: 0 },
+                'Groceries': { color: '#00BCD4', total: 0 },
+                'Investment': { color: '#FF9800', total: 0 },
+                'Education': { color: '#8BC34A', total: 0 },
+                'Transfers': { color: '#9C27B0', total: 0 },
+                'Other': { color: '#607D8B', total: 0 }
+            };
+
+            // Function to automatically detect category from note and amount
+            function categorizeTransaction(note, amount) {
+                const lowerNote = note.toLowerCase();
+
+                if (amount < 20 && lowerNote === '') return 'Other';
+
+                if (lowerNote.includes('restaurant') || lowerNote.includes('cafe') || lowerNote.includes('dinner') || lowerNote.includes('lunch') || lowerNote.includes('food') || lowerNote.includes('coffee')) return 'Food & Dining';
+                if (lowerNote.includes('bus') || lowerNote.includes('train') || lowerNote.includes('metro') || lowerNote.includes('fuel') || lowerNote.includes('taxi')) return 'Transport';
+                if (lowerNote.includes('shop') || lowerNote.includes('mall') || lowerNote.includes('clothes') || lowerNote.includes('shoes') || lowerNote.includes('online store') || lowerNote.includes('book')) return 'Shopping';
+                if (lowerNote.includes('flight') || lowerNote.includes('hotel') || lowerNote.includes('vacation') || lowerNote.includes('trip')) return 'Travel';
+                if (lowerNote.includes('grocery') || lowerNote.includes('supermarket') || lowerNote.includes('vegetables') || lowerNote.includes('milk')) return 'Groceries';
+                if (lowerNote.includes('investment') || lowerNote.includes('stock') || lowerNote.includes('mutual fund') || lowerNote.includes('sip')) return 'Investment';
+                if (lowerNote.includes('education') || lowerNote.includes('tuition') || lowerNote.includes('course') || lowerNote.includes('school') || lowerNote.includes('college')) return 'Education';
+                if (lowerNote.includes('transfer') || lowerNote.includes('rent') || lowerNote.includes('loan payment') || lowerNote.includes('send money')) return 'Transfers';
+
+                return 'Other'; // Default category if no specific keywords are found
+            }
+
+            async function fetchAndProcessTransactions(filterType, startDate = null, endDate = null) {
+                let url = `/api/transactions?filter_type=${filterType}`;
+                if (filterType === 'custom' && startDate && endDate) {
+                    url += `&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+                }
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const transactions = await response.json();
+                    
+                    let totalSpent = 0;
+                    let totalIncome = 0;
+
+                    // Reset category totals
+                    for (const category in categories) {
+                        categories[category].total = 0;
+                    }
+
+                    transactions.forEach(transaction => {
+                        if (transaction.type === 'expense') {
+                            const category = categorizeTransaction(transaction.note, transaction.amount);
+                            if (categories[category]) {
+                                categories[category].total += transaction.amount;
+                            } else {
+                                categories['Other'].total += transaction.amount;
+                            }
+                            totalSpent += transaction.amount;
+                        } else if (transaction.type === 'income') {
+                            totalIncome += transaction.amount;
+                        }
+                    });
+
+                    totalSpentElement.textContent = `₹${totalSpent.toFixed(2)}`;
+                    totalIncomeElement.textContent = `₹${totalIncome.toFixed(2)}`;
+                    pieChartTotalElement.textContent = `₹${totalSpent.toFixed(2)}`;
+
+                    renderCategoriesAndPieChart(totalSpent);
+
+                } catch (error) {
+                    console.error('Error fetching transactions:', error);
+                    alert('Failed to load transactions. Please try again.');
+                }
+            }
+
+            function renderCategoriesAndPieChart(totalSpent) {
+                expenseCategoriesListElement.innerHTML = '';
+                let currentAngle = 0;
+                let conicGradientParts = [];
+
+                const otherCategory = categories['Other'];
+                const nonOtherCategories = Object.entries(categories).filter(([name]) => name !== 'Other');
+                const sortedNonOtherCategories = nonOtherCategories.sort(([,a],[,b]) => b.total - a.total);
+                const finalSortedCategories = [...sortedNonOtherCategories, ['Other', otherCategory]];
+
+                finalSortedCategories.forEach(([categoryName, data]) => {
+                    if (data.total > 0) {
+                        const percentage = (data.total / totalSpent) * 100;
+                        const startAngle = currentAngle;
+                        const endAngle = currentAngle + percentage;
+
+                        conicGradientParts.push(`${data.color} ${startAngle}% ${endAngle}%`);
+
+                        let categoryDisplay = categoryName;
+                        if (categoryName === 'Investment') {
+                            categoryDisplay = 'Investment (SIP/Stock - Autopay/Mandate)';
+                        } else if (categoryName === 'Transfers') {
+                            categoryDisplay = 'Transfers (Whom you transfer)'; // Added specific text for Transfers
+                        }
+
+                        const categoryListItem = `
+                            <li class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <span class="w-3 h-3 rounded-full" style="background-color: ${data.color}; margin-right: 0.75rem;"></span>
+                                    <span class="font-medium text-gray-700">${categoryDisplay}</span>
+                                </div>
+                                <span class="font-semibold text-gray-800">₹${data.total.toFixed(2)}</span>
+                            </li>
+                        `;
+                        expenseCategoriesListElement.insertAdjacentHTML('beforeend', categoryListItem);
+                        currentAngle = endAngle;
+                    }
+                });
+
+                if (totalSpent > 0) {
+                    pieChartContainer.style.background = `conic-gradient(${conicGradientParts.join(', ')})`;
+                } else {
+                    pieChartContainer.style.background = `#e0e0e0`;
+                }
+            }
+
+            // Date Filter Logic
+            filterWeekBtn.addEventListener('click', () => {
+                const now = new Date();
+                const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())); // Sunday
+                const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6)); // Saturday
+                startOfWeek.setHours(0, 0, 0, 0);
+                endOfWeek.setHours(23, 59, 59, 999);
+                fetchAndProcessTransactions('week', startOfWeek, endOfWeek);
+                customDateRangeDiv.classList.add('hidden');
+            });
+
+            filterMonthBtn.addEventListener('click', () => {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                startOfMonth.setHours(0, 0, 0, 0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                fetchAndProcessTransactions('month', startOfMonth, endOfMonth);
+                customDateRangeDiv.classList.add('hidden');
+            });
+
+            filterCustomBtn.addEventListener('click', () => {
+                customDateRangeDiv.classList.toggle('hidden');
+            });
+
+            applyCustomFilterBtn.addEventListener('click', () => {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                if (startDate && endDate && startDate <= endDate) {
+                    startDate.setHours(0, 0, 0, 0);
+                    endDate.setHours(23, 59, 59, 999);
+                    fetchAndProcessTransactions('custom', startDate, endDate);
+                } else {
+                    alert('Please select valid start and end dates.');
+                }
+            });
+
+            // Initial load: show current month's expenses
+            filterMonthBtn.click();
+
+
+            async function getSpendingInsights() {
+                buttonText.textContent = 'Generating Insights...';
+                loadingSpinner.classList.remove('hidden');
+                insightsOutput.classList.add('hidden');
+
+                const totalSpent = parseFloat(totalSpentElement.textContent.replace('₹', '').replace(',', ''));
+                const totalIncome = parseFloat(totalIncomeElement.textContent.replace('₹', '').replace(',', ''));
+                const balance = totalIncome - totalSpent;
+
+                const categorySummaries = [];
+                // Ensure categories are sorted for the prompt as well
+                const otherCategory = categories['Other'];
+                const nonOtherCategories = Object.entries(categories).filter(([name]) => name !== 'Other');
+                const sortedNonOtherCategories = nonOtherCategories.sort(([,a],[,b]) => b.total - a.total);
+                const finalSortedCategoriesForPrompt = [...sortedNonOtherCategories, ['Other', otherCategory]];
+
+                finalSortedCategoriesForPrompt.forEach(([categoryName, data]) => {
+                    if (data.total > 0) {
+                        let display = categoryName;
+                        if (categoryName === 'Investment') {
+                            display = 'Investment (SIP/Stock - Autopay/Mandate)';
+                        } else if (categoryName === 'Transfers') {
+                            display = 'Transfers (Whom you transfer)';
+                        }
+                        categorySummaries.push(`${display}: ₹${data.total.toFixed(2)}`);
+                    }
+                });
+
+                const prompt = `Analyze the following monthly financial data and provide a concise summary of spending habits, along with one actionable tip for improvement.
+                Total Spent: ₹${totalSpent.toFixed(2)}
+                Total Income: ₹${totalIncome.toFixed(2)}
+                Balance: ₹${balance.toFixed(2)}
+                Expense Categories:
+                ${categorySummaries.join('\n')}
+
+                Please provide your analysis and tip in a friendly, encouraging tone.`;
+
+                try {
+                    const response = await fetch('/api/insights', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            totalSpent: totalSpent,
+                            totalIncome: totalIncome,
+                            balance: balance,
+                            expenseCategories: categorySummaries
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    insightsOutput.innerHTML = `<p>${result.insight.replace(/\n/g, '<br>')}</p>`;
+                    insightsOutput.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error('Error fetching insights:', error);
+                    insightsOutput.innerHTML = `<p class="text-red-500">An error occurred: ${error.message}. Please check your network connection and API key.</p>`;
+                    insightsOutput.classList.remove('hidden');
+                } finally {
+                    buttonText.textContent = 'Get Spending Insights';
+                    loadingSpinner.classList.add('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
