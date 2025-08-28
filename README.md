@@ -8,7 +8,7 @@
 
 
 ## Google Pay Expense Analyzer (Flask App)
-This project is a Flask-based web application that simulates a Google Pay-like interface with a powerful expense analyzer. It helps users visualize their spending habits, categorize transactions automatically, and gain personalized financial insights powered by the Google Gemini API.
+This project is a Flask-based web application that simulates a Google Pay-like interface with a powerful expense analyzer. It helps users visualize their spending habits, categorize transactions automatically, and gain personalized financial insights.
 
 Features
 Google Pay-like Interface: A clean and intuitive UI mimicking the Google Pay home screen.
@@ -47,14 +47,12 @@ This Month
 
 Custom Date Range (select start and end dates)
 
-AI-Powered Spending Insights: Integrates with the Google Gemini API to provide personalized summaries of spending habits and actionable financial tips.
 
-Technologies Used
-Backend: Flask (Python)
+## Technologies Used ##
+Backend: Flask (Python) 
 
 Frontend: HTML, CSS (Tailwind CSS for styling), JavaScript
 
-AI/ML: Google Gemini API (gemini-2.0-flash model for text generation)
 
 Project Structure
 your_gpay_app/
@@ -97,34 +95,7 @@ With the virtual environment activated, install the required Python packages:
 
 pip install -r requirements.txt
 
-4. Get Your Google Gemini API Key
-Go to Google AI Studio.
-
-Sign in with your Google Account.
-
-Look for "Get API key" or "Create API key" and generate a new key.
-
-Copy your API Key.
-
-5. Set the Gemini API Key as an Environment Variable
-Important: Never hardcode your API key directly in app.py for production. Use environment variables.
-
-On macOS/Linux:
-
-export GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-
-On Windows (Command Prompt):
-
-set GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-
-On Windows (PowerShell):
-
-$env:GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-
-Replace "YOUR_GEMINI_API_KEY_HERE" with the actual API key you copied.
-Note: This command sets the environment variable for the current terminal session only. If you open a new terminal, you'll need to set it again.
-
-6. Run the Flask Application
+4. Run the Flask Application
 With the virtual environment still active, run the Flask development server:
 
 flask run
@@ -154,9 +125,8 @@ Use the "This Week," "This Month," and "Custom Range" buttons to filter transact
 
 The category list dynamically sorts by amount spent (highest first), with "Other" always at the bottom.
 
-Click "✨ Get Spending Insights" to receive an AI-generated summary and tip based on the displayed data.
 
-Future Improvements
+## Future Improvements ##
 Database Integration: Replace in-memory transactions_data with a proper database (e.g., SQLite, PostgreSQL, MongoDB) for persistent storage.
 
 User Authentication: Implement user login/registration to manage individual expense data.
