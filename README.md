@@ -109,7 +109,7 @@ Use a production WSGI server instead.
  * Running on http://127.0.0.1:5000
 Press CTRL+C to quit
 
-7. Access the Application
+6. Access the Application
 Open your web browser and navigate to the address provided in the terminal (usually http://127.0.0.1:5000/).
 
 You will see the simulated Google Pay home screen. Click the "Spend Analyzer" button to access the expense analysis dashboard.
